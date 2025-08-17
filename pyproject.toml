@@ -10,6 +10,7 @@ dependencies = [
     "flask-cors>=6.0.1",
     "flask-login>=0.6.3",
     "flask-migrate>=4.1.0",
+    "flask-socketio>=5.5.1",
     "flask-sqlalchemy>=3.1.1",
     "psycopg2-binary>=2.9.10",
     "pydantic>=2.11.7",
