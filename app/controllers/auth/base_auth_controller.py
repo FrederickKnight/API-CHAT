@@ -66,12 +66,11 @@ class BaseAuthController:
         
     def delete_user_by_id(self,id):
     
-        _user = self.__query_id__(id)
-            
+        _user:BaseUser = self.__query_id__(id)
+        
         if _user != None:
             try:
-                self.session.delete(_user)
-                self.session.commit()
+                _user.soft_delete()
                 
             except Exception as e:
                 self.session.rollback()

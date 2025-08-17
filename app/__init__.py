@@ -2,6 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from flask_socketio import SocketIO
 import os
 from dotenv import load_dotenv
 from .error_handler import register_error_handlers
@@ -13,6 +14,7 @@ migrate = Migrate()
 
 bcrypt = Bcrypt()
 cors = CORS()
+socketio = SocketIO()
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 upload_folder = os.path.abspath(os.path.join(basedir, 'static', 'uploads'))
@@ -34,6 +36,7 @@ def create_app():
     migrate.init_app(app, db)
     bcrypt.init_app(app)
     cors.init_app(app, resources={r"/api/*": {"origins": "http://localhost:4321"}}, supports_credentials=True)
+    socketio.init_app(app)
     
     from app.models import (
         BaseModel,
@@ -56,9 +59,9 @@ def define_routes(app:Flask):
     #user & auth
     app.register_blueprint(AuthUserRoute().get_blueprint(),url_prefix="/api/auth/user")
 
-    from app.routes import (
-        ExampleRoute,
-    )
+    # from app.routes import (
+    #     ExampleRoute,
+    # )
 
-    # routes
-    app.register_blueprint(ExampleRoute().get_blueprint(),url_prefix="/api/example/")
+    # # routes
+    # app.register_blueprint(ExampleRoute().get_blueprint(),url_prefix="/api/example/")

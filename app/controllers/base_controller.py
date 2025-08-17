@@ -84,8 +84,9 @@ class BaseController:
         _query = self.session.query(self._model).filter_by(id=id).first()
         
         try:
-            self.session.delete(_query)
-            self.session.commit()
+            # self.session.delete(_query)
+            # self.session.commit()
+            _query.soft_delete()
             
         except Exception as e:
             self.session.rollback()

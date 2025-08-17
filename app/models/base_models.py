@@ -5,7 +5,8 @@ from datetime import datetime
 
 from sqlalchemy.orm import (
     Mapped,
-    mapped_column
+    mapped_column,
+    object_session
 )
 
 from sqlalchemy import (
@@ -44,17 +45,29 @@ class BaseModel(db.Model):
 
     def __getClassName__(self):
         return type(self).__name__
-
-class BaseUser(BaseModel):
+    
+class BaseCreatedModel(BaseModel):
     __abstract__ = True
-
-    username:Mapped[str] = mapped_column(String(20),unique=True)
-    password:Mapped[str]
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     created_at:Mapped[datetime | None] = mapped_column(DateTime, default=func.now())
     deleted_at:Mapped[datetime | None] = mapped_column(DateTime,nullable=True)
+
+    def soft_delete(self):
+        self.is_active = False
+        self.deleted_at = datetime.now()
+        session = object_session(self)
+
+        if session:
+            session.add(self)
+            session.commit()
+
+class BaseUser(BaseCreatedModel):
+    __abstract__ = True
+
+    username:Mapped[str] = mapped_column(String(20),unique=True)
+    password:Mapped[str]
 
     def __repr__(self):
         return f"<{self.__getClassName__()}(id={self.id},username={self.username})>"
@@ -62,7 +75,10 @@ class BaseUser(BaseModel):
     def get_json(self,include_relationships = None):
         return {
             "id":self.id,
-            "username":self.username
+            "username":self.username,
+            "is_active":self.is_active,
+            "created_at":self.created_at,
+            "deleted_at":self.deleted_at
         }
     
     def set_password(self,password:str):

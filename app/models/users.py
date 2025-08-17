@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models import (
         Session,
-        Example
     )
 
 from sqlalchemy.dialects.postgresql import ENUM
@@ -25,8 +24,6 @@ class User(BaseUser):
     auth_level:Mapped[AuthLevelEnum] = mapped_column(auth_level_enum,default=AuthLevelEnum.WORKER.value)
 
     user_session:Mapped["Session"] = relationship("Session",back_populates="user",uselist=False)
-
-    examples:Mapped[list["Example"]] = relationship("Example",back_populates="user",cascade="all, delete-orphan")
 
     def check_auth_level(self,levels):
         if self.auth_level.lower() == AuthLevelEnum.ADMIN:
