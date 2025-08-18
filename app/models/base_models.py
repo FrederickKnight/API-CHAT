@@ -71,6 +71,10 @@ class BaseUser(BaseCreatedModel):
 
     def __repr__(self):
         return f"<{self.__getClassName__()}(id={self.id},username={self.username})>"
+    
+    def soft_delete(self):
+        self.username = f"{self.username}_deleted_{self.id}"
+        super().soft_delete()
         
     def get_json(self,include_relationships = None):
         return {

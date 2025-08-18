@@ -22,6 +22,8 @@ from app.models.users import(
     BaseUser
 )
 
+from sqlalchemy.orm import Query
+
 class BaseAuthController:
     def __init__(self,user_model,session_model,user_schema,session_schema):
         self._model:BaseUser = user_model
@@ -56,7 +58,8 @@ class BaseAuthController:
                 self.session.rollback()
                 raise e
 
-            register_result = self.session.query(self._model).filter_by(id = new_data.id).first()
+            register_result = self.__parse_user__(self.session.query(self._model).filter_by(id = new_data.id).first())
+
             return self.__return_json__(
                 response=register_result,
                 version=version
@@ -68,7 +71,7 @@ class BaseAuthController:
     
         _user:BaseUser = self.__query_id__(id)
         
-        if _user != None:
+        if _user != None and _user.is_active:
             try:
                 _user.soft_delete()
                 
@@ -78,24 +81,27 @@ class BaseAuthController:
             
             return Response(status=204)
         else:
-            raise ValidationError("User doesn't exist or invalid given data")
+            raise ValidationError("User doesn't exist, it's already deleted or invalid given data")
         
     
     def get_all(self,request:Request):
         version= request.headers.get("Accept")
-        users = self.session.query(self._model).all()
+        users,pagination_data = self.__query_args__(
+            args = request.args    
+        )
 
         if len(users) > 0 and users:
             return self.__return_json__(
-                response=users,
-                version=version
+                response = users,
+                version = version,
+                pagination_data = pagination_data
             )
         else:
             raise ValidationError("There is no users")
 
     def get_by_id(self,id,request:Request):
         version = request.headers.get("Accept")
-        user = self.__query_id__(id)
+        user = self.__parse_user__(self.__query_id__(id))
         
         if user != None:
             return self.__return_json__(
@@ -118,10 +124,7 @@ class BaseAuthController:
             if data_pass == False:
                 raise ValidationError("Password is incorrect or invalid given data")
                 
-            return self.__return_json__(
-                response=_user,
-                version=version
-            )
+            return Response(status=200)
         
         else:
             raise ValidationError("invalid given data, not username or password")
@@ -209,7 +212,7 @@ class BaseAuthController:
             raise ValidationError("Invalid Session")
 
     #helpers
-    def __return_json__(self,response:Response,version:str = None):
+    def __return_json__(self,response:Response,version:str = None,pagination_data:dict = {}):
         if isinstance(response,Response):
             return response
         
@@ -218,20 +221,62 @@ class BaseAuthController:
         )
 
         if res_version:
-
-            if isinstance(response,list):
-                _response = [res.get_json() for res in response]
-
-            else:
-                _response = [response.get_json()]
-
             return res_version(
-                response=_response,
-                type=type(self._model()).__name__
+                response=response,
+                type=type(self._model()).__name__,
+                pagination_data = pagination_data
             ).get_response()
         
         else:
             raise VersionError("Error in versioning")
+        
+    def __query_args__(self,args = None,_id:int = None,need_all:bool = True):
+        query:Query = self.session.query(self._model)
+        args = args if args else request.args
+
+        is_active_text = args.get("is_active")
+        if is_active_text:
+            is_active = self.__str_to_bool__(is_active_text)
+            query = query.filter_by(is_active = is_active)
+
+        if _id:
+            if isinstance(_id,int):
+                _q = _q.filter_by(id = _id)
+            else:
+                raise InvalidIDError("Expected a number/interger id")
+
+        pagination_data = {}
+
+        limit = args.get("limit",type=int,default=200)
+        page = args.get("page",type=int,default=1)
+
+        total = query.count()
+        pagination_data["total"] = total
+
+        pagination_data["limit"] = limit
+        pagination_data["page"] = page
+        pagination_data["pages"] = (total // limit) + (1 if total % limit else 0)
+
+        offset = (page - 1) * limit
+        query = query.limit(limit).offset(offset)
+
+        result = query.all() if need_all else query.first()
+        
+        if result:
+            
+            return self.__parse_user__(result),pagination_data
+        
+        else:
+            return Response(status=204),pagination_data
+        
+    def __str_to_bool__(self,val:str):
+        return val.lower() in ["true","1","yes","y"]
+    
+    def __parse_user__(self,data):
+        if isinstance(data,list):
+            return [dt.get_json() for dt in data]
+        else:
+            return [data.get_json()]
             
     def __query_id__(self,_id):
         if isinstance(_id,int):

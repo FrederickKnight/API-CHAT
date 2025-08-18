@@ -1,6 +1,6 @@
 from app.models import BaseModel
 from flask import Response
-from pydantic import BaseModel, PrivateAttr, model_validator, field_validator
+from pydantic import BaseModel, Field, PrivateAttr, model_validator, field_validator
 from typing import Self
 import re
 
@@ -8,6 +8,7 @@ import re
 class JsonResponse(BaseModel):
     response:dict | list
     type:str
+    pagination_data:dict = Field(default_factory=dict)
 
     _size:int = PrivateAttr(default=0)
 
@@ -36,7 +37,13 @@ class JsonResponse(BaseModel):
                 "type":"schema",
                 "size":self._size,
                 "api_version":"v0",
-                "type_response":"list" if isinstance(self.response,list) else "dict"
+                "type_response":"list" if isinstance(self.response,list) else "dict",
+                "pagination":{
+                    "page":self.pagination_data.get("page",0),
+                    "pages":self.pagination_data.get("pages",0),
+                    "limit":self.pagination_data.get("limit",0),
+                    "total":self.pagination_data.get("total",0)
+                }
             }
         }
 
@@ -48,7 +55,13 @@ class JsonResponseV1(JsonResponse):
                 "type":self.type,
                 "size":self._size,
                 "api_version":"v1",
-                "type_response":"list" if isinstance(self.response,list) else "dict"
+                "type_response":"list" if isinstance(self.response,list) else "dict",
+                "pagination":{
+                    "page":self.pagination_data.get("page",0),
+                    "pages":self.pagination_data.get("pages",0),
+                    "limit":self.pagination_data.get("limit",0),
+                    "total":self.pagination_data.get("total",0)
+                }
             }
         }
 

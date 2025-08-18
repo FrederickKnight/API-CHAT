@@ -10,6 +10,8 @@ from app.controllers.versions import (
     get_version
 )
 
+from sqlalchemy.orm import Query
+
 class BaseController:
     def __init__(self,model,defaults,schema):
         self._model = model
@@ -20,9 +22,14 @@ class BaseController:
         
         
     def controller_get_all(self,request:Request):
-
         version = request.headers.get("Accept")
-        return self.__return_json__(self.__query_args__(request.args),version)
+        response,pagination_data = self.__query_args__(request.args)
+        
+        return self.__return_json__(
+            response = response,
+            version = version,
+            pagination_data = pagination_data
+        )
         
     
     def controller_register(self,request:Request):
@@ -39,7 +46,11 @@ class BaseController:
         except Exception as e:
             self.session.rollback()
             raise e
-        return self.__return_json__(self.session.query(self._model).filter_by(id = new_data.id).first(),version)
+        response = self.session.query(self._model).filter_by(id = new_data.id).first()
+        return self.__return_json__(
+            response = response,
+            version = version
+        )
         
         
     def controller_update(self,id = None,request:Request = None):
@@ -61,7 +72,10 @@ class BaseController:
         _query = self.session.query(self._model).filter_by(id = _id).first()
         
         if not _query:
-            return self.__return_json__(_query,version)
+            return self.__return_json__(
+                response = _query,
+                version = version
+            )
         
         new_data = {**self._defaults,**json_request}
 
@@ -78,14 +92,15 @@ class BaseController:
             self.session.rollback()
             raise e
         
-        return self.__return_json__(_query,version)
+        return self.__return_json__(
+            response = _query,
+            version = version
+        )
     
     def controller_delete(self,id):
         _query = self.session.query(self._model).filter_by(id=id).first()
         
         try:
-            # self.session.delete(_query)
-            # self.session.commit()
             _query.soft_delete()
             
         except Exception as e:
@@ -94,14 +109,19 @@ class BaseController:
         
         return Response(status=204)
 
-
     def controller_get_by_id(self,id,request:Request):
         version = request.headers.get("Accept")
-        return self.__return_json__(self.__query_args__(request.args,id),version)
+        # return self.__return_json__(self.__query_args__(request.args,id),version)
+        response,pagination_data = self.__query_args__(request.args,id)
 
+        return self.__return_json__(
+            response = response,
+            version = version,
+            pagination_data = pagination_data
+        )
 
     ### Helpers
-    def __return_json__(self,response,version:str = None):
+    def __return_json__(self,response,version:str = None,pagination_data:dict = {}):
         if isinstance(response,Response):
             return response
         
@@ -112,19 +132,25 @@ class BaseController:
         if res_version:
             return res_version(
                 response=response,
-                type=type(self._model()).__name__
+                type=type(self._model()).__name__,
+                pagination_data = pagination_data
             ).get_response()
             
         else:
             raise VersionError("Error in versioning")
     
     def __query_args__(self,args = None,_id:int = None):        
-        _q = self.session.query(self._model)
+        query:Query = self.session.query(self._model)
         args = args if args else request.args
+
+        is_active_text = args.get("is_active")
+        if is_active_text:
+            is_active = self.__str_to_bool__(is_active_text)
+            query = query.filter_by(is_active = is_active)
         
         if _id:
             if isinstance(_id,int):
-                _q = _q.filter_by(id = _id)
+                query = query.filter_by(id = _id)
             else:
                 raise InvalidIDError("Expected a number/interger id")
         
@@ -149,46 +175,47 @@ class BaseController:
                     final_attr = getattr(current_model,attrs[-1])
                      # junta los atributos con un join para el filtro
                     for rel in rel_chain:
-                        _q = _q.join(rel)
+                        query = query.join(rel)
                         
-                    _q = _q.filter(final_attr == filter_value)
+                    query = query.filter(final_attr == filter_value)
                     
                 except:
                     raise AttributeError("Expected a valid attribute in query args")
 
             else:
-                _q = _q.filter(getattr(self._model, filter_field) == filter_value)
+                query = query.filter(getattr(self._model, filter_field) == filter_value)
         
-        
-        limit = args.get("limit",type=int,default=None)
-        if limit is not None:
-            _q = _q.limit(limit)
-            
-        offset = args.get("offset",type=int,default=0)
-        if offset > 0:
-            _q = _q.offset(offset)
-            
+        pagination_data = {}
+
+        limit = args.get("limit",type=int,default=200)
         page = args.get("page",type=int,default=1)
-        if page > 1:
-            _p = (page - 1) * limit if limit else (page - 1)
-            _q = _q.offset(_p)
-            
+
+        total = query.count()
+        pagination_data["total"] = total
+
+        pagination_data["limit"] = limit
+        pagination_data["page"] = page
+        pagination_data["pages"] = (total // limit) + (1 if total % limit else 0)
+
+        offset = (page - 1) * limit
+        query = query.limit(limit).offset(offset)
+        
         # return first or all
         first = args.get("first",type=bool,default=False)
         
-        result = _q.first() if first else _q.all()
+        result = query.first() if first else query.all()
         
         show_relations = self.__str_to_bool__(args.get("relations",default="false"))
+        
         if result:
             if isinstance(result,dict) or isinstance(result,list):
-                _response = [item.get_json(show_relations) for item in result]
+                return [item.get_json(show_relations) for item in result],pagination_data
 
             else:
-                _response = [result.get_json(show_relations)]
-            return _response
+                return [result.get_json(show_relations)],pagination_data
+            
         else:
-            # retornar data vacio
-            return Response(status=204)
+            return Response(status=204),pagination_data
         
     def __str_to_bool__(self,val:str):
         return val.lower() in ["true","1","yes","y"]
