@@ -5,6 +5,7 @@ description = "Template for my APIs"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "eventlet>=0.40.2",
     "flask>=3.1.1",
     "flask-bcrypt>=1.0.1",
     "flask-cors>=6.0.1",

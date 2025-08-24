@@ -124,7 +124,10 @@ class BaseAuthController:
             if data_pass == False:
                 raise ValidationError("Password is incorrect or invalid given data")
                 
-            return Response(status=200)
+            return self.__return_json__(
+                response=self.__parse_user__(_user),
+                version=version
+            )
         
         else:
             raise ValidationError("invalid given data, not username or password")

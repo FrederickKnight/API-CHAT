@@ -34,7 +34,7 @@ class Room(BaseCreatedModel):
 
 class RoomUser(BaseCreatedModel):
     id_room:Mapped[int] = mapped_column(ForeignKey("room.id"))
-    room:Mapped["Room"] = relationship("Room",back_populates="users",cascade="all, delete-orphan")
+    room:Mapped["Room"] = relationship("Room",back_populates="users")
 
     id_user:Mapped[int] = mapped_column(ForeignKey("user.id"))
-    user:Mapped["User"] = relationship("User",back_populates="rooms",cascade="all, delete-orphan")
+    user:Mapped["User"] = relationship("User",back_populates="rooms")
