@@ -9,7 +9,7 @@ from app.schemas import (
 )
 
 class MessageController(BaseController):
-    def __ini__(self):
+    def __init__(self):
         super().__init__(
             model=Message,
             schema=MessageSchema

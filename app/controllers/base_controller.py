@@ -13,9 +13,8 @@ from app.controllers.versions import (
 from sqlalchemy.orm import Query
 
 class BaseController:
-    def __init__(self,model,defaults,schema):
+    def __init__(self,model,schema):
         self._model = model
-        self._defaults = defaults
         self._schema = schema
         
         self.session = db.session  
@@ -23,7 +22,9 @@ class BaseController:
         
     def controller_get_all(self,request:Request):
         version = request.headers.get("Accept")
-        response,pagination_data = self.__query_args__(request.args)
+        response,pagination_data = self.__query_args__(
+            args = request.args
+        )
         
         return self.__return_json__(
             response = response,
@@ -48,36 +49,36 @@ class BaseController:
             raise e
         response = self.session.query(self._model).filter_by(id = new_data.id).first()
         return self.__return_json__(
-            response = response,
+            response = self.__parse_object__(response),
             version = version
         )
         
         
-    def controller_update(self,id = None,request:Request = None):
+    def controller_update(self,id:int = None,request:Request = None):
         
         json_request = request.get_json()
         version = request.headers.get("Accept")
-        
-        if not id or not isinstance(id,int):
-            if "id" in json_request:
-                _id = json_request["id"]
-            else:
-                return Response(response=json.dumps({"message":"Not id in data"}),status=400,mimetype="application/json")
-        else:
-            _id = id
+
+        if id and isinstance(id,int):
             if "id" in json_request:
                 return Response(response=json.dumps({"message":"id in data and url"}),status=400,mimetype="application/json")
+            _id = id
+            json_request["id"] = id
+
+        else:
+            if not "id" in json_request:
+                return Response(response=json.dumps({"message":"Not id in data"}),status=400,mimetype="application/json")
+            _id = json_request["id"]
         
-        self._defaults["id"] = _id
         _query = self.session.query(self._model).filter_by(id = _id).first()
         
         if not _query:
             return self.__return_json__(
-                response = _query,
+                response = self.__parse_object__(_query),
                 version = version
             )
         
-        new_data = {**self._defaults,**json_request}
+        new_data = self._schema(**json_request).dict()
 
         try:
             for key,value in new_data.items():
@@ -93,7 +94,7 @@ class BaseController:
             raise e
         
         return self.__return_json__(
-            response = _query,
+            response = self.__parse_object__(_query),
             version = version
         )
     
@@ -111,8 +112,11 @@ class BaseController:
 
     def controller_get_by_id(self,id,request:Request):
         version = request.headers.get("Accept")
-        # return self.__return_json__(self.__query_args__(request.args,id),version)
-        response,pagination_data = self.__query_args__(request.args,id)
+
+        response,pagination_data = self.__query_args__(
+            args = request.args,
+            _id = id
+        )
 
         return self.__return_json__(
             response = response,
@@ -139,7 +143,7 @@ class BaseController:
         else:
             raise VersionError("Error in versioning")
     
-    def __query_args__(self,args = None,_id:int = None):        
+    def __query_args__(self,args = None,_id:int = None,need_all:bool = True):        
         query:Query = self.session.query(self._model)
         args = args if args else request.args
 
@@ -200,22 +204,24 @@ class BaseController:
         offset = (page - 1) * limit
         query = query.limit(limit).offset(offset)
         
-        # return first or all
-        first = args.get("first",type=bool,default=False)
-        
-        result = query.first() if first else query.all()
+        result = query.all() if need_all else query.first()
         
         show_relations = self.__str_to_bool__(args.get("relations",default="false"))
         
         if result:
-            if isinstance(result,dict) or isinstance(result,list):
-                return [item.get_json(show_relations) for item in result],pagination_data
-
-            else:
-                return [result.get_json(show_relations)],pagination_data
+            return self.__parse_object__(
+                data = result,
+                show_relations = show_relations
+            ), pagination_data
             
         else:
             return Response(status=204),pagination_data
+        
+    def __parse_object__(self,data,show_relations:bool = False):
+        if isinstance(data,list):
+            return [dt.get_json(show_relations) for dt in data]
+        else:
+            return [data.get_json(show_relations)]
         
     def __str_to_bool__(self,val:str):
         return val.lower() in ["true","1","yes","y"]

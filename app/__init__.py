@@ -59,9 +59,13 @@ def define_routes(app:Flask):
     #user & auth
     app.register_blueprint(AuthUserRoute().get_blueprint(),url_prefix="/api/auth/user")
 
-    # from app.routes import (
-    #     ExampleRoute,
-    # )
+    from app.routes import (
+        RoomRoute,
+        RoomUserRoute,
+        MessageRoute
+    )
 
-    # # routes
-    # app.register_blueprint(ExampleRoute().get_blueprint(),url_prefix="/api/example/")
+    # routes
+    app.register_blueprint(RoomRoute().get_blueprint(),url_prefix="/api/room/")
+    app.register_blueprint(RoomUserRoute().get_blueprint(),url_prefix="/api/room-user/")
+    app.register_blueprint(MessageRoute().get_blueprint(),url_prefix="/api/message/")
