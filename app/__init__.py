@@ -62,10 +62,12 @@ def define_routes(app:Flask):
     from app.routes import (
         RoomRoute,
         RoomUserRoute,
-        MessageRoute
+        MessageRoute,
+        ZoeRoute
     )
 
     # routes
     app.register_blueprint(RoomRoute().get_blueprint(),url_prefix="/api/room/")
     app.register_blueprint(RoomUserRoute().get_blueprint(),url_prefix="/api/room-user/")
     app.register_blueprint(MessageRoute().get_blueprint(),url_prefix="/api/message/")
+    app.register_blueprint(ZoeRoute().get_blueprint(),url_prefix="/api/zoe/")

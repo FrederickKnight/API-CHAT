@@ -8,3 +8,7 @@ from .room_route import (
 from .message_route import (
     MessageRoute
 )
+
+from .zoe_route import (
+    ZoeRoute
+)

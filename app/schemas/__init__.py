@@ -3,7 +3,7 @@ from .enums import(
     TypeRoomEnum
 )
 
-from .user_schema import UserSchema
+from .user_schema import UserSchema,UserZoeSchema
 from .session_schema import SessionSchema
 from .room_schema import RoomSchema, RoomUserSchema
 from .message_schema import MessageSchema

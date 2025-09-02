@@ -18,6 +18,14 @@ class BaseAuthRoute:
                 data=json_request,
                 request=request
             )
+        
+        @self._blueprint.route("/user-zoe",methods=["POST"],strict_slashes=False)
+        def route_register_user_and_zoe():
+            json_request = request.get_json()
+            return self._controller.register_user_and_zoe(
+                data=json_request,
+                request=request
+            )
 
         @self._blueprint.route("/",methods=["GET"],strict_slashes=False)
         @requires_auth(["admin"])

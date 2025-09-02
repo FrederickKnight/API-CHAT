@@ -12,6 +12,8 @@ from app.controllers.versions import (
 
 from sqlalchemy.orm import Query
 
+from sqlalchemy import asc, desc
+
 class BaseController:
     def __init__(self,model,schema):
         self._model = model
@@ -189,6 +191,12 @@ class BaseController:
             else:
                 query = query.filter(getattr(self._model, filter_field) == filter_value)
         
+        order = args.get("order",type=str,default="").lower()
+        if order == "asc":
+            query = query.order_by(self._model.created_at.asc())
+        if order == "desc":
+            query = query.order_by(self._model.created_at.desc())
+
         pagination_data = {}
 
         limit = args.get("limit",type=int,default=200)
@@ -203,11 +211,11 @@ class BaseController:
 
         offset = (page - 1) * limit
         query = query.limit(limit).offset(offset)
-        
+
         result = query.all() if need_all else query.first()
         
         show_relations = self.__str_to_bool__(args.get("relations",default="false"))
-        
+
         if result:
             return self.__parse_object__(
                 data = result,

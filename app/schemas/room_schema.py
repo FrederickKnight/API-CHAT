@@ -11,3 +11,4 @@ class RoomUserSchema(BaseModel):
     id:int = None
     id_room:int
     id_user:int
+    id_zoe:int

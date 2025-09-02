@@ -1,5 +1,6 @@
 from app.models import (
-    BaseUser
+    BaseUser,
+    BaseCreatedModel
 )
 
 from sqlalchemy.orm import (
@@ -8,7 +9,7 @@ from sqlalchemy.orm import (
     relationship
 )
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from app.models import (
         Session,
@@ -18,6 +19,9 @@ if TYPE_CHECKING:
 
 from sqlalchemy.dialects.postgresql import ENUM
 from app.schemas import AuthLevelEnum
+from sqlalchemy import (
+    ForeignKey
+)
 
 auth_level_enum = ENUM(*[level.value for level in AuthLevelEnum], name="auth_level_type",create_type=True)
 
@@ -43,3 +47,13 @@ class User(BaseUser):
             return auth_level == levels.lower()
         
         return False
+
+class UserZoe(BaseCreatedModel):
+    name:Mapped[str] = mapped_column(default="ZOE")
+    nickname:Mapped[Optional[str]]
+
+    user_nickname:Mapped[Optional[str]]
+
+    room:Mapped["RoomUser"] = relationship("RoomUser",back_populates="zoe")
+
+    messages:Mapped[list["Message"]] = relationship("Message",back_populates="zoe",cascade="all, delete-orphan")

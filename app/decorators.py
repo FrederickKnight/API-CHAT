@@ -35,8 +35,7 @@ def requires_auth(auth_levels:list):
                 return Response(status=401)
 
             validation_result = auth_controller.validateSessionToken(c_session)
-            
-            if validation_result:
+            if validation_result.status == "200 OK":
                 result_json = json.loads(validation_result.response[0])
                 user = session.query(User).filter_by(id = result_json["user"]["id"]).first()
 

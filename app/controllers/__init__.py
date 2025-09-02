@@ -13,3 +13,7 @@ from .room_controller import (
 from .message_controller import (
     MessageController
 )
+
+from .zoe_controller import (
+    ZoeController
+)

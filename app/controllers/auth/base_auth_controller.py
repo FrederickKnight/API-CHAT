@@ -67,6 +67,77 @@ class BaseAuthController:
         else:
             raise ValidationError("User already exist")
         
+    def register_user_and_zoe(self,data,request:Request):
+        from app.schemas import (
+            RoomSchema,
+            RoomUserSchema,
+            UserZoeSchema
+        )
+
+        from app.models import (
+            Room,
+            RoomUser,
+            UserZoe
+        )
+
+        if "id" in data:
+            data["id"] = None
+
+        user_already_exist = True if self.__query_username__(data["username"]) else False
+        if not user_already_exist:
+            if not "password" in data:
+                raise ValidationError("invalid given data, not password")
+
+            try:
+                
+                user_data = self._user_schema(**data)
+                created_user_data:BaseUser = self._model(**user_data.model_dump())
+                created_user_data.set_password(data["password"])
+
+                self.session.add(created_user_data)
+
+                room_data = RoomSchema(
+                    name = f"zoe-room-{created_user_data.username}"
+                )
+                created_room_data = Room(**room_data.model_dump())
+
+                self.session.add(created_room_data)
+
+                zoe_data = UserZoeSchema()
+                created_zoe_data = UserZoe(**zoe_data.model_dump())
+
+                self.session.add(created_zoe_data)
+
+                # To get the ids without make a query
+                self.session.flush() 
+                
+                room_user_data = RoomUserSchema(
+                    id_room = created_room_data.id,
+                    id_user = created_user_data.id,
+                    id_zoe = created_zoe_data.id
+                )
+                created_room_user = RoomUser(**room_user_data.model_dump())
+                
+                self.session.add(created_room_user)
+
+                self.session.commit()
+
+            except Exception as e:
+                self.session.rollback()
+                raise e
+            
+            version = request.headers.get("Accept")
+
+            register_result = self.__parse_user__(self.session.query(self._model).filter_by(id = created_user_data.id).first())
+
+            return self.__return_json__(
+                response=register_result,
+                version=version
+            )
+
+        else:
+            raise ValidationError("User already exist")
+
     def delete_user_by_id(self,id):
     
         _user:BaseUser = self.__query_id__(id)
@@ -174,10 +245,10 @@ class BaseAuthController:
         }
         
         if not _query:
-            return {
-            "session":None,
-            "user":None
-        }
+            return Response(
+                response=json.dumps({"session":None,"user":None}),
+                status = 400
+            )
         
         sessionJson = _query.get_json(True)
         expiration_Date = datetime.fromtimestamp(sessionJson["expires_at"])
@@ -185,10 +256,10 @@ class BaseAuthController:
             # si expiro
             self.session.delete(_query)
             self.session.commit()
-            return {
-                "session":None,
-                "user":None
-            }
+            return Response(
+                response=json.dumps({"session":None,"user":None}),
+                status = 400
+            )
         
         if datetime.now() >= (expiration_Date - timedelta(days=-15)):
             # si es menor a 15 dias

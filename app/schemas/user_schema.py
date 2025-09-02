@@ -7,7 +7,7 @@ class UserSchema(BaseModel):
     username:str
     password:str
     is_active:bool = Field(default=True)
-    auth_level:str = Field(default=AuthLevelEnum.WORKER.value)
+    auth_level:str = Field(default=AuthLevelEnum.USER.value)
 
     @field_validator("username",mode="before")
     @classmethod
@@ -31,3 +31,9 @@ class UserSchema(BaseModel):
         # More validations like password contains numbers and chars or etc, later on
         
         return password
+    
+class UserZoeSchema(BaseModel):
+    name:str = Field(default="ZOE")
+    nickname:str = None
+    user_nickname:str = None
+    is_active:bool = Field(default=True)
