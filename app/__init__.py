@@ -6,8 +6,12 @@ from flask_socketio import SocketIO
 import os
 from dotenv import load_dotenv
 from .error_handler import register_error_handlers
+from google import genai
 
 from flask_migrate import Migrate
+
+if os.environ.get("DB_URL") is None:
+    load_dotenv()
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -15,6 +19,8 @@ migrate = Migrate()
 bcrypt = Bcrypt()
 cors = CORS()
 socketio = SocketIO()
+zoe_client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 upload_folder = os.path.abspath(os.path.join(basedir, 'static', 'uploads'))
@@ -23,9 +29,6 @@ app:Flask = Flask(__name__)
 
 def create_app():
     
-    if os.environ.get("DB_URL") is None:
-        load_dotenv()
-
     register_error_handlers(app)
 
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DB_URL")

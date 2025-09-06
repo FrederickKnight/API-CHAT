@@ -36,4 +36,5 @@ class UserZoeSchema(BaseModel):
     name:str = Field(default="ZOE")
     nickname:str = None
     user_nickname:str = None
+    relation:float = 0.0
     is_active:bool = Field(default=True)

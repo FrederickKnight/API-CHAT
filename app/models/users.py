@@ -20,7 +20,8 @@ if TYPE_CHECKING:
 from sqlalchemy.dialects.postgresql import ENUM
 from app.schemas import AuthLevelEnum
 from sqlalchemy import (
-    ForeignKey
+    ForeignKey,
+    event
 )
 
 auth_level_enum = ENUM(*[level.value for level in AuthLevelEnum], name="auth_level_type",create_type=True)
@@ -53,7 +54,17 @@ class UserZoe(BaseCreatedModel):
     nickname:Mapped[Optional[str]]
 
     user_nickname:Mapped[Optional[str]]
+    relation:Mapped[Optional[float]] = mapped_column(default=0.0)
 
     room:Mapped["RoomUser"] = relationship("RoomUser",back_populates="zoe")
 
     messages:Mapped[list["Message"]] = relationship("Message",back_populates="zoe",cascade="all, delete-orphan")
+
+@event.listens_for(UserZoe,"before_update")
+@event.listens_for(UserZoe,"before_insert")
+def validate_relation_number(mapper, connection, target: "UserZoe"):
+
+    if not isinstance(target.relation,float):
+        raise TypeError("relation must be a valid float number")
+    
+    target.relation = min(0,max(target.relation,100))
