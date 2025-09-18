@@ -14,5 +14,6 @@ from .zoe_response_schemas import (
     ZoeMessagesSummary,
     ZoeMessageSchema,
     ZoeResponseSchema,
-    AIContentMoodsSchema
+    AIContentMoodsSchema,
+    ZoeResponseWelcomeMessageSchema
 )

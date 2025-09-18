@@ -24,3 +24,7 @@ class ZoeResponseSchema(BaseModel):
 class AIContentMoodsSchema(BaseModel):
     instruction:str
     message:str
+
+class ZoeResponseWelcomeMessageSchema(BaseModel):
+    instruction:str
+    relation_score:float

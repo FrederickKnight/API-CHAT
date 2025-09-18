@@ -5,6 +5,7 @@ from .events import (
 )
 
 from .zoe import (
+    handle_zoe_welcome_message,
     handle_zoe_response,
     get_summary_old_messages,
     get_last_messages,

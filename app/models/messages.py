@@ -111,3 +111,9 @@ class MessageMood(BaseModel):
     message:Mapped["Message"] = relationship("Message",back_populates="moods")
 
     mood:Mapped[list[ExampleMoodsEnum]] = mapped_column(ARRAY(moods_conversation),default=list)
+
+class MessageWelcome(BaseModel):
+    id_user:Mapped[int] = mapped_column(ForeignKey("user.id"),unique=True)
+    user:Mapped["User"] = relationship("User",back_populates="welcome_message")
+
+    message:Mapped[str]

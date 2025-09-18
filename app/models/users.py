@@ -14,7 +14,8 @@ if TYPE_CHECKING:
     from app.models import (
         Session,
         RoomUser,
-        Message
+        Message,
+        MessageWelcome
     )
 
 from sqlalchemy.dialects.postgresql import ENUM
@@ -34,6 +35,8 @@ class User(BaseUser):
     rooms:Mapped[list["RoomUser"]] = relationship("RoomUser",back_populates="user",cascade="all, delete-orphan")
 
     messages:Mapped[list["Message"]] = relationship("Message",back_populates="user",cascade="all, delete-orphan")
+    
+    welcome_message:Mapped["MessageWelcome"] = relationship("MessageWelcome",back_populates="user")
 
     def check_auth_level(self,levels):
         if self.auth_level.lower() == AuthLevelEnum.ADMIN:
@@ -60,8 +63,8 @@ class UserZoe(BaseCreatedModel):
 
     messages:Mapped[list["Message"]] = relationship("Message",back_populates="zoe",cascade="all, delete-orphan")
 
-@event.listens_for(UserZoe,"before_update")
-@event.listens_for(UserZoe,"before_insert")
+@event.listens_for(UserZoe,"after_update")
+@event.listens_for(UserZoe,"after_insert")
 def validate_relation_number(mapper, connection, target: "UserZoe"):
 
     if not isinstance(target.relation,float):
