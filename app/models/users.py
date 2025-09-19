@@ -63,11 +63,11 @@ class UserZoe(BaseCreatedModel):
 
     messages:Mapped[list["Message"]] = relationship("Message",back_populates="zoe",cascade="all, delete-orphan")
 
-@event.listens_for(UserZoe,"after_update")
-@event.listens_for(UserZoe,"after_insert")
+@event.listens_for(UserZoe,"before_update")
+@event.listens_for(UserZoe,"before_insert")
 def validate_relation_number(mapper, connection, target: "UserZoe"):
 
     if not isinstance(target.relation,float):
         raise TypeError("relation must be a valid float number")
     
-    target.relation = min(0,max(target.relation,100))
+    target.relation = max(0,min(target.relation,100))

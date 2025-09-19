@@ -17,3 +17,10 @@ class ZoeRoute(BaseRoute):
             id = id,
             request = request
         )
+    
+    @zoe_bp.route("/user/<int:id>/match-ratio",methods=["GET"],strict_slashes=False)
+    def route_match_ratio(id):
+        return zoe_controller.controller_match_relation(
+            id = id,
+            request = request
+        )

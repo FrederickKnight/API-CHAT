@@ -9,9 +9,12 @@ from app.schemas import (
     UserZoeSchema
 )
 from app.chat import handle_zoe_welcome_message
-from flask import Response,Request
+from flask import Response,Request,json
 from app.controllers.versions import (
     get_version
+)
+from app.models import (
+    RoomUser
 )
 
 class ZoeController(BaseController):
@@ -42,3 +45,15 @@ class ZoeController(BaseController):
             raise e
         
         return Response(response=message, status=200)
+    
+    def controller_match_relation(self,id:int,request:Request) -> Response:
+        query_room_user = self.session.query(RoomUser).filter_by(id_user = id).first()
+
+        if query_room_user:
+            response = {
+                "ratio":query_room_user.zoe.relation
+            }
+
+            return Response(response=json.dumps(response),status=200)
+        
+        return Response(status=404)
