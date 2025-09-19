@@ -14,7 +14,8 @@ if TYPE_CHECKING:
     from app.models import (
         Session,
         RoomUser,
-        Message
+        Message,
+        MessageWelcome
     )
 
 from sqlalchemy.dialects.postgresql import ENUM
@@ -34,6 +35,8 @@ class User(BaseUser):
     rooms:Mapped[list["RoomUser"]] = relationship("RoomUser",back_populates="user",cascade="all, delete-orphan")
 
     messages:Mapped[list["Message"]] = relationship("Message",back_populates="user",cascade="all, delete-orphan")
+    
+    welcome_message:Mapped["MessageWelcome"] = relationship("MessageWelcome",back_populates="user")
 
     def check_auth_level(self,levels):
         if self.auth_level.lower() == AuthLevelEnum.ADMIN:
@@ -67,4 +70,4 @@ def validate_relation_number(mapper, connection, target: "UserZoe"):
     if not isinstance(target.relation,float):
         raise TypeError("relation must be a valid float number")
     
-    target.relation = min(0,max(target.relation,100))
+    target.relation = max(0,min(target.relation,100))

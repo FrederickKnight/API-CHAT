@@ -12,7 +12,8 @@ from app.schemas import (
     ZoeMessageSchema,
     ZoeMessagesSummary,
     ZoeContentSchema,
-    ZoeResponseSchema
+    ZoeResponseSchema,
+    ZoeResponseWelcomeMessageSchema
 )
 
 from app.schemas import ExampleMoodsEnum
@@ -20,6 +21,32 @@ from app.schemas import ExampleMoodsEnum
 from sqlalchemy import asc, desc
 session = db.session
 
+def handle_zoe_welcome_message(id_user:int) -> str:
+    room_user = session.query(RoomUser).filter_by(id_user = id_user).first()
+    if room_user:
+        relation = min(0,max(room_user.zoe.relation,100) if room_user.zoe.relation else 0)
+    
+    instruction = f"""
+    Responde de manera cercana y empática, adaptándote al nivel de relación con el usuario: 0 es un trato cordial y 100 es un trato de amigos muy cercanos. 
+    Tu tarea es dar un mensaje que le haga sentir agusto, usando la relation_score para saber que tan cercana debes actuar.
+    Genera un mensaje corto de maximo una oracion, que sea un mensaje emocional y emotivo ya sea de felicidad, nostalgia o similar.
+    """
+
+    zoe_content = ZoeResponseWelcomeMessageSchema(
+        instruction = instruction,
+        relation_score = relation
+    )
+    
+    response = zoe_client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents = zoe_content.model_dump_json(),
+        config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+            response_mime_type="text/plain"
+        )
+    )
+
+    return response.text
 
 def handle_zoe_response(id_room:int,message:str) -> ZoeResponseSchema:
     room_user = session.query(RoomUser).filter_by(id_room = id_room).first()
@@ -31,7 +58,7 @@ def handle_zoe_response(id_room:int,message:str) -> ZoeResponseSchema:
     Responde de manera cercana y empática, adaptándote al nivel de relación con el usuario: 0 es un trato cordial y 100 es un trato de amigos muy cercanos. 
     Tienes acceso a la lista de moods de cada mensaje del usuario y a un resumen de la conversación anterior; úsalos para comprender mejor su estado emocional. 
     Aunque poseas un conocimiento amplio, céntrate en usarlo para ayudar al usuario y ofrecer apoyo práctico y emocional. 
-    No menciones ni hagas referencia al nivel de relación; actúa de forma natural y humana en la conversación.
+    No menciones ni hagas referencia al nivel de relation_score; actúa de forma natural y humana en la conversación.
     El usuario con el que hablas se llama {room_user.user.username} y te referiras de esa manera cuando sea necesario.
     Evita respuestas genéricas o demasiado técnicas e intenta mantener respuestas medianamente cortas.
     recent_messages sera para contexto mientras que last_message sera al que respondas mas directamente.
